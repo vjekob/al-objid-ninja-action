@@ -1,0 +1,20 @@
+{
+  "name": "al-objid-ninja-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for AL Object ID Ninja CI/CD integration",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && ncc build src/main.ts -o dist --minify",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/glob": "^0.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.9.0"
+  },
+  "license": "MIT"
+}

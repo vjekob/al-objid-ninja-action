@@ -1,0 +1,5 @@
+node_modules/
+out/
+*.js.map
+
+# Do NOT ignore dist/ — it must be committed for GitHub Actions

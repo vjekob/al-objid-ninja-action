@@ -1,0 +1,5 @@
+# Only index.js needs to be committed — it's the fully bundled action entry point.
+# Everything else is build artifacts from ncc.
+*
+!.gitignore
+!index.js
