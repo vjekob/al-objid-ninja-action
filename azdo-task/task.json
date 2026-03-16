@@ -1,0 +1,38 @@
+{
+    "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
+    "id": "157c5e56-dd93-43f7-af46-44a5ed1bd87c",
+    "name": "al-objid-ninja",
+    "friendlyName": "AL Object ID Ninja Task",
+    "description": "Checks for untracked AL object IDs against the Ninja backend",
+    "category": "Build",
+    "author": "Vjeko.com",
+    "version": {
+        "Major": 1,
+        "Minor": 0,
+        "Patch": 0
+    },
+    "instanceNameFormat": "AL Object ID Ninja Check",
+    "inputs": [
+        {
+            "name": "excludeFieldIds",
+            "type": "boolean",
+            "label": "Exclude field IDs",
+            "defaultValue": "false",
+            "required": false,
+            "helpMarkDown": "Skip checking table/table extension field IDs"
+        },
+        {
+            "name": "excludeEnumValueIds",
+            "type": "boolean",
+            "label": "Exclude enum value IDs",
+            "defaultValue": "false",
+            "required": false,
+            "helpMarkDown": "Skip checking enum/enum extension value IDs"
+        }
+    ],
+    "execution": {
+        "Node24": {
+            "target": "dist-azdo/index.js"
+        }
+    }
+}

@@ -1,0 +1,38 @@
+{
+    "manifestVersion": 1,
+    "id": "al-objid-ninja",
+    "publisher": "vjeko",
+    "version": "1.0.0",
+    "public": true,
+    "name": "AL Object ID Ninja Task",
+    "description": "Checks for untracked AL object IDs against the Ninja backend",
+    "icons": {
+        "default": "icon.png"
+    },
+    "categories": ["Azure Pipelines"],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "contributions": [
+        {
+            "id": "al-objid-ninja-check",
+            "type": "ms.vss-distributed-task.task",
+            "targets": ["ms.vss-distributed-task.tasks"],
+            "properties": {
+                "name": "azdo-task"
+            }
+        }
+    ],
+    "content": {
+        "details": {
+            "path": "overview.md"
+        }
+    },
+    "files": [
+        {
+            "path": "azdo-task"
+        }
+    ]
+}
