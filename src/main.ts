@@ -16,8 +16,8 @@ const logger: ActionLogger = {
 
 async function main(): Promise<void> {
     const mode = core.getInput("mode") || "warn";
-    if (mode !== "warn" && mode !== "sync") {
-        core.setFailed(`Invalid mode "${mode}". Must be "warn" or "sync".`);
+    if (mode === "sync") {
+        core.setFailed('Sync mode is not supported at the moment. This action only checks for untracked object IDs.');
         return;
     }
 
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
     }
 
     const inputs: ActionInputs = {
-        mode,
+        mode: "warn",
         excludeFieldIds: core.getInput("exclude-field-ids") === "true",
         excludeEnumValueIds: core.getInput("exclude-enum-value-ids") === "true",
         workspace,

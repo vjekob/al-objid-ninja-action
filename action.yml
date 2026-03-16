@@ -1,10 +1,6 @@
 name: 'AL Object ID Ninja'
 description: 'Warns about untracked object IDs or synchronizes consumption with Ninja backend'
 inputs:
-  mode:
-    description: "'warn' to detect untracked IDs, 'sync' to synchronize consumption with backend"
-    required: false
-    default: 'warn'
   exclude-field-ids:
     description: 'Skip checking table/table extension field IDs'
     required: false
