@@ -195,6 +195,7 @@ async function runWarnMode(
                 appId: backendId,
                 authKey,
                 manifest: groupApps[0].manifest,
+                workspace: inputs.workspace,
             });
         } catch (err) {
             const msg = (err as Error).message;
@@ -265,7 +266,7 @@ async function runSyncMode(
 
         try {
             await syncConsumption(
-                { appId: backendId, authKey, manifest: groupApps[0].manifest },
+                { appId: backendId, authKey, manifest: groupApps[0].manifest, workspace: inputs.workspace },
                 mergedConsumption
             );
 

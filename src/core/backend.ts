@@ -1,17 +1,38 @@
 import * as https from "https";
 import * as http from "http";
+import { execSync } from "child_process";
 import { AppManifest, ConsumptionInfo } from "./types";
 
 const ACTION_VERSION = "3.4.0";
 const BACKEND_URL = "https://backend.alid.ninja";
 
+interface GitUserInfo {
+    name: string;
+    email: string;
+}
+
+let cachedGitUser: GitUserInfo | undefined;
+
+function getLastCommitUser(workspace: string): GitUserInfo {
+    if (cachedGitUser) return cachedGitUser;
+    try {
+        const name = execSync("git log -1 --format=%an", { cwd: workspace, encoding: "utf8" }).trim();
+        const email = execSync("git log -1 --format=%ae", { cwd: workspace, encoding: "utf8" }).trim();
+        cachedGitUser = { name, email };
+    } catch {
+        cachedGitUser = { name: "", email: "" };
+    }
+    return cachedGitUser;
+}
+
 interface BackendRequestOptions {
     appId: string;
     authKey?: string;
     manifest?: AppManifest;
+    workspace?: string;
 }
 
-function request(url: string, method: string, body: unknown, options: { authKey?: string; manifest?: AppManifest }): Promise<unknown> {
+function request(url: string, method: string, body: unknown, options: { authKey?: string; manifest?: AppManifest; workspace?: string }): Promise<unknown> {
     return new Promise((resolve, reject) => {
         const parsed = new URL(url);
         const isHttps = parsed.protocol === "https:";
@@ -29,7 +50,10 @@ function request(url: string, method: string, body: unknown, options: { authKey?
         }
 
         // Build the header payload the backend expects (matches ninja-extension sendRequest.ts)
+        const gitUser = options.workspace ? getLastCommitUser(options.workspace) : { name: "", email: "" };
         const headerPayload = {
+            gitUserName: gitUser.name,
+            gitUserEmail: gitUser.email,
             appPublisher: options.manifest?.publisher,
             appName: options.manifest?.name,
             appVersion: options.manifest?.version,
@@ -90,7 +114,7 @@ export async function getConsumption(options: BackendRequestOptions): Promise<Co
         body.authKey = options.authKey;
     }
 
-    const result = await request(url, "POST", body, { authKey: options.authKey, manifest: options.manifest });
+    const result = await request(url, "POST", body, { authKey: options.authKey, manifest: options.manifest, workspace: options.workspace });
 
     if (!result || typeof result !== "object") {
         return {};
@@ -118,5 +142,5 @@ export async function syncConsumption(options: BackendRequestOptions, ids: Consu
         body.authKey = options.authKey;
     }
 
-    await request(url, "PATCH", body, { authKey: options.authKey, manifest: options.manifest });
+    await request(url, "PATCH", body, { authKey: options.authKey, manifest: options.manifest, workspace: options.workspace });
 }
