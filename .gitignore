@@ -2,4 +2,6 @@ node_modules/
 out/
 *.js.map
 
+*.vsix
+
 # Do NOT ignore dist/ — it must be committed for GitHub Actions
