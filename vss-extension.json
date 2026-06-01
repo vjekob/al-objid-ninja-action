@@ -2,7 +2,7 @@
     "manifestVersion": 1,
     "id": "al-objid-ninja",
     "publisher": "vjeko",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "public": true,
     "name": "AL Object ID Ninja Task",
     "description": "Checks for untracked AL object IDs against the Ninja backend",

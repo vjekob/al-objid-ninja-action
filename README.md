@@ -1,29 +1,34 @@
-# AL Object ID Ninja - GitHub Action
+# AL Object ID Ninja - Azure DevOps Task
 
-> **Work in Progress** — This action is under active development and not yet ready for production use.
+> **Work in Progress** — This task is under active development and not yet ready for production use.
 
-GitHub Action for [AL Object ID Ninja](https://marketplace.visualstudio.com/items?itemName=vjeko.vjeko-al-objid) CI/CD integration. Detects untracked AL object IDs or synchronizes consumption with the Ninja backend during pull requests and builds.
-
-## Modes
-
-- **`warn`** (default) — Parses all AL files in the repository, compares object IDs against the Ninja backend, and emits inline warnings for any untracked IDs. Fails the workflow if untracked IDs are found.
-- **`sync`** — Merges the repository's current object ID consumption into the Ninja backend.
+Azure DevOps pipeline task for [AL Object ID Ninja](https://marketplace.visualstudio.com/items?itemName=vjeko.vjeko-al-objid) CI/CD integration. Detects untracked AL object IDs by comparing your repository against the Ninja backend during builds.
 
 ## Usage
 
 ```yaml
-- uses: vjekob/al-objid-ninja-action@main
-  with:
-    mode: 'warn'
+steps:
+  - task: al-objid-ninja@1
+```
+
+By default the task scans `Build.SourcesDirectory`. When your pipeline checks the repository out to a custom location via the `checkout` step's `path` parameter, `Build.SourcesDirectory` no longer points at the repository, so set the `workingDirectory` input to the same path:
+
+```yaml
+steps:
+  - checkout: self
+    path: s/my-repo
+  - task: al-objid-ninja@1
+    inputs:
+      workingDirectory: s/my-repo
 ```
 
 ## Inputs
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `mode` | No | `warn` | `warn` or `sync` |
-| `exclude-field-ids` | No | `false` | Skip checking table/table extension field IDs |
-| `exclude-enum-value-ids` | No | `false` | Skip checking enum/enum extension value IDs |
+| Input | Default | Description |
+|-------|---------|-------------|
+| `workingDirectory` | _(empty)_ | Directory to scan for AL apps (`app.json`). Leave empty to use the default sources directory (`Build.SourcesDirectory`). If your pipeline checks the repository out to a custom location via the `checkout` step's `path` parameter, set this to the same value. Relative paths are resolved against `Agent.BuildDirectory`; absolute paths are used as-is. |
+| `excludeFieldIds` | `false` | Skip checking table/table extension field IDs |
+| `excludeEnumValueIds` | `false` | Skip checking enum/enum extension value IDs |
 
 ## Features
 
@@ -31,12 +36,17 @@ GitHub Action for [AL Object ID Ninja](https://marketplace.visualstudio.com/item
 - Tracks object IDs, table field IDs, and enum value IDs
 - Supports app pools — pooled apps share consumption
 - Native AL parser for fast, accurate parsing
+- Fails the pipeline if any untracked IDs are found
+
+## Prerequisites
+
+Your repository must be using the [AL Object ID Ninja](https://marketplace.visualstudio.com/items?itemName=vjeko.vjeko-al-objid) VS Code extension with a committed `.objidconfig` file.
 
 ## Building
 
 ```bash
 npm install
-npm run build   # compiles TypeScript and bundles into dist/index.js
+npm run build   # compiles TypeScript, bundles dist-azdo/, prepares azdo-task/, and packages the VSIX
 ```
 
-`dist/index.js` must be committed — it is what GitHub runners execute.
+The bundled output (`dist-azdo/` and `azdo-task/`) must be committed — it is what the pipeline agents execute.
