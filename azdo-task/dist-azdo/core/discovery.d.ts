@@ -9,6 +9,8 @@ export declare function findAppJsonFiles(rootDir: string): Promise<string[]>;
  */
 export declare function discoverApps(rootDir: string, logger?: {
     warning(msg: string): void;
+}, options?: {
+    tolerant?: boolean;
 }): Promise<DiscoveredApp[]>;
 /**
  * Find all .al files under a directory, recursively.

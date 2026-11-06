@@ -1,0 +1,1 @@
+{"version":3,"file":"collisions.d.ts","sourceRoot":"","sources":["file:///E:/Source/Ninja/al-objid-ninja-action/src/core/collisions.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,QAAQ,EAAE,SAAS,EAAqB,aAAa,EAAE,MAAM,SAAS,CAAC;AAEhF,UAAU,UAAU;IAChB,GAAG,EAAE,aAAa,CAAC;IACnB,OAAO,EAAE,QAAQ,EAAE,CAAC;CACvB;AAmBD;;;GAGG;AACH,wBAAgB,cAAc,CAAC,UAAU,EAAE,UAAU,EAAE,GAAG,SAAS,EAAE,CAuCpE"}

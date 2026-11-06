@@ -78,6 +78,7 @@ async function main(): Promise<void> {
         excludeFieldIds: tl.getBoolInput("excludeFieldIds", false) ?? false,
         excludeEnumValueIds: tl.getBoolInput("excludeEnumValueIds", false) ?? false,
         workspace,
+        failOnCollision: tl.getBoolInput("failOnCollision", false) ?? false,
     };
 
     await run(inputs, logger);

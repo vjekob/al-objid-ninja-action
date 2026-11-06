@@ -1,9 +1,10 @@
-import { AppManifest, ConsumptionInfo } from "./types";
+import { AppManifest, ConsumptionInfo, GitIdentity } from "./types";
 interface BackendRequestOptions {
     appId: string;
     authKey?: string;
     manifest?: AppManifest;
     workspace?: string;
+    gitIdentity?: GitIdentity;
 }
 /**
  * Fetch current consumption from the backend.

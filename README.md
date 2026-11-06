@@ -2,32 +2,12 @@
 
 > **Work in Progress** — This task is under active development and not yet ready for production use.
 
-Azure DevOps pipeline task for [AL Object ID Ninja](https://marketplace.visualstudio.com/items?itemName=vjeko.vjeko-al-objid) CI/CD integration. Detects untracked AL object IDs by comparing your repository against the Ninja backend during builds.
+Azure DevOps pipeline task for [AL Object ID Ninja](https://marketplace.visualstudio.com/items?itemName=vjeko.vjeko-al-objid) CI/CD integration. It parses all AL files in your repository and compares them against the Ninja backend during builds:
+
+- **Untracked IDs** get warnings and fail the pipeline.
+- **Collisions**, the same object type and ID declared in more than one file of one app or app pool, get warnings. Set `failOnCollision` to fail the pipeline on them too. A collision under `#if` always only warns, because the declarations may never be compiled together.
 
 ## Usage
-
-Create `.github/workflows/ninja-check.yml` in your repository. Change `main` if your main branch has a different name:
-
-```yaml
-name: AL Object ID Ninja Check
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: vjekob/al-objid-ninja-action@main
-```
-
-The action finds every `app.json` in your repository by itself. The backend has to know your app, so someone must have used Ninja on it or synchronized it. If your app is authorized, commit `.objidconfig`, because the action reads the authorization key from there.
-
-To also fail on collisions:
 
 ```yaml
 steps:
@@ -45,20 +25,6 @@ steps:
       workingDirectory: s/my-repo
 ```
 
-To use the result in a later step, give the step an `id`. Use `if: always()`, because later steps otherwise don't run after a failure:
-
-```yaml
-- id: ninja
-  uses: vjekob/al-objid-ninja-action@main
-- if: always()
-  shell: bash
-  run: |
-    echo "Untracked IDs: ${{ steps.ninja.outputs.untracked-count }}" >> "$GITHUB_STEP_SUMMARY"
-    echo "Collisions: ${{ steps.ninja.outputs.collision-count }}" >> "$GITHUB_STEP_SUMMARY"
-```
-
-The full guide is in the [help article](https://alid.ninja/help/extension/ci-cd-integration).
-
 ## Inputs
 
 | Input | Default | Description |
@@ -66,6 +32,7 @@ The full guide is in the [help article](https://alid.ninja/help/extension/ci-cd-
 | `workingDirectory` | _(empty)_ | Directory to scan for AL apps (`app.json`). Leave empty to use the default sources directory (`Build.SourcesDirectory`). If your pipeline checks the repository out to a custom location via the `checkout` step's `path` parameter, set this to the same value. Relative paths are resolved against `Agent.BuildDirectory`; absolute paths are used as-is. |
 | `excludeFieldIds` | `false` | Skip checking table/table extension field IDs |
 | `excludeEnumValueIds` | `false` | Skip checking enum/enum extension value IDs |
+| `failOnCollision` | `false` | Fail the pipeline on a collision instead of only warning |
 
 ## Features
 
@@ -79,11 +46,17 @@ The full guide is in the [help article](https://alid.ninja/help/extension/ci-cd-
 
 Your repository must be using the [AL Object ID Ninja](https://marketplace.visualstudio.com/items?itemName=vjeko.vjeko-al-objid) VS Code extension with a committed `.objidconfig` file.
 
+## Command line and git hooks
+
+The same checks are available outside pipelines through the CLI. See [cli/README.md](cli/README.md).
+
 ## Building
 
 ```bash
 npm install
-npm run build   # compiles TypeScript, bundles dist-azdo/, prepares azdo-task/, and packages the VSIX
+npm test
+npm run build       # compiles TypeScript, bundles dist-azdo/, prepares azdo-task/, and packages the VSIX
+npm run pack:cli    # builds the CLI and packs its npm package
 ```
 
 The bundled output (`dist-azdo/` and `azdo-task/`) must be committed — it is what the pipeline agents execute.

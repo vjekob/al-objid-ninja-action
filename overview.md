@@ -8,6 +8,7 @@ Azure DevOps pipeline task for [AL Object ID Ninja Task](https://marketplace.vis
 - Parses all `.al` files and extracts object IDs, table field IDs, and enum value IDs
 - Compares them against the Ninja backend
 - Fails the pipeline if any untracked IDs are found
+- Warns about object IDs declared in more than one file of one app or app pool, and fails the pipeline on them if you set `failOnCollision`
 
 ### Usage
 
@@ -34,6 +35,7 @@ steps:
 | `workingDirectory` | _(empty)_ | Directory to scan for AL apps (`app.json`). Leave empty to use the default sources directory (`Build.SourcesDirectory`). If your pipeline checks the repository out to a custom location via the `checkout` step's `path` parameter, set this to the same value. Relative paths are resolved against `Agent.BuildDirectory`; absolute paths are used as-is. |
 | `excludeFieldIds` | `false` | Skip checking table/table extension field IDs |
 | `excludeEnumValueIds` | `false` | Skip checking enum/enum extension value IDs |
+| `failOnCollision` | `false` | Fail the pipeline on a collision instead of only warning |
 
 ### Prerequisites
 
