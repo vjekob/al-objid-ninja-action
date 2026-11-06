@@ -1,5 +1,5 @@
 import * as core from "@actions/core";
-import { run, ActionLogger, ActionInputs } from "./core";
+import { run, toReport, ActionLogger, ActionInputs } from "./core";
 
 const logger: ActionLogger = {
     info: (msg) => core.info(msg),
@@ -32,9 +32,14 @@ async function main(): Promise<void> {
         excludeFieldIds: core.getInput("exclude-field-ids") === "true",
         excludeEnumValueIds: core.getInput("exclude-enum-value-ids") === "true",
         workspace,
+        failOnCollision: core.getInput("fail-on-collision") === "true",
     };
 
-    await run(inputs, logger);
+    const result = await run(inputs, logger);
+
+    core.setOutput("result", JSON.stringify(toReport(result, workspace)));
+    core.setOutput("untracked-count", result.untrackedIds.length);
+    core.setOutput("collision-count", result.collisions.length);
 }
 
 main().catch((err) => {

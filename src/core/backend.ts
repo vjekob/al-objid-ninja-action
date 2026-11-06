@@ -1,7 +1,8 @@
 import * as https from "https";
 import * as http from "http";
 import { execSync } from "child_process";
-import { AppManifest, ConsumptionInfo } from "./types";
+import { BackendUnreachableError } from "./errors";
+import { AppManifest, ConsumptionInfo, GitIdentity } from "./types";
 
 const ACTION_VERSION = "3.4.0";
 const BACKEND_URL = "https://backend.alid.ninja";
@@ -13,11 +14,13 @@ interface GitUserInfo {
 
 let cachedGitUser: GitUserInfo | undefined;
 
-function getLastCommitUser(workspace: string): GitUserInfo {
+function getGitUser(workspace: string, gitIdentity?: GitIdentity): GitUserInfo {
     if (cachedGitUser) return cachedGitUser;
+    const nameCommand = gitIdentity === "config" ? "git config user.name" : "git log -1 --format=%an";
+    const emailCommand = gitIdentity === "config" ? "git config user.email" : "git log -1 --format=%ae";
     try {
-        const name = execSync("git log -1 --format=%an", { cwd: workspace, encoding: "utf8" }).trim();
-        const email = execSync("git log -1 --format=%ae", { cwd: workspace, encoding: "utf8" }).trim();
+        const name = execSync(nameCommand, { cwd: workspace, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+        const email = execSync(emailCommand, { cwd: workspace, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
         cachedGitUser = { name, email };
     } catch {
         cachedGitUser = { name: "", email: "" };
@@ -30,9 +33,10 @@ interface BackendRequestOptions {
     authKey?: string;
     manifest?: AppManifest;
     workspace?: string;
+    gitIdentity?: GitIdentity;
 }
 
-function request(url: string, method: string, body: unknown, options: { authKey?: string; manifest?: AppManifest; workspace?: string }): Promise<unknown> {
+function request(url: string, method: string, body: unknown, options: Omit<BackendRequestOptions, "appId">): Promise<unknown> {
     return new Promise((resolve, reject) => {
         const parsed = new URL(url);
         const isHttps = parsed.protocol === "https:";
@@ -50,7 +54,7 @@ function request(url: string, method: string, body: unknown, options: { authKey?
         }
 
         // Build the header payload the backend expects (matches ninja-extension sendRequest.ts)
-        const gitUser = options.workspace ? getLastCommitUser(options.workspace) : { name: "", email: "" };
+        const gitUser = options.workspace ? getGitUser(options.workspace, options.gitIdentity) : { name: "", email: "" };
         const headerPayload = {
             gitUserName: gitUser.name,
             gitUserEmail: gitUser.email,
@@ -96,7 +100,7 @@ function request(url: string, method: string, body: unknown, options: { authKey?
         );
 
         req.on("error", (err) => {
-            reject(new Error(`Backend unreachable: ${err.message}. Check the backend-url input.`));
+            reject(new BackendUnreachableError(`Backend unreachable: ${err.message}.`));
         });
 
         req.write(bodyStr);
@@ -114,7 +118,7 @@ export async function getConsumption(options: BackendRequestOptions): Promise<Co
         body.authKey = options.authKey;
     }
 
-    const result = await request(url, "POST", body, { authKey: options.authKey, manifest: options.manifest, workspace: options.workspace });
+    const result = await request(url, "POST", body, options);
 
     if (!result || typeof result !== "object") {
         return {};

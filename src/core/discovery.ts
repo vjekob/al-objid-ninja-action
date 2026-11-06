@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { AppManifest, DiscoveredApp, ObjIdConfig } from "./types";
 import { getSha256 } from "./hash";
+import { applyDirectoryAppProps, parseTolerant } from "./directoryAppProps";
 
 /**
  * Recursively find all app.json files under a root directory,
@@ -40,10 +41,14 @@ export async function findAppJsonFiles(rootDir: string): Promise<string[]> {
 /**
  * Try to parse an app.json file. Returns undefined if it can't be parsed.
  */
-function tryParseManifest(appJsonPath: string): AppManifest | undefined {
+function tryParseManifest(appJsonPath: string, tolerant?: boolean): AppManifest | undefined {
     try {
         const content = fs.readFileSync(appJsonPath, "utf-8");
-        const json = JSON.parse(content);
+        const json: any = tolerant ? parseTolerant(content) : JSON.parse(content);
+
+        if (tolerant) {
+            applyDirectoryAppProps(appJsonPath, json);
+        }
 
         if (!json.id || typeof json.id !== "string") {
             return undefined;
@@ -64,7 +69,7 @@ function tryParseManifest(appJsonPath: string): AppManifest | undefined {
 /**
  * Try to parse an .objidconfig file. Returns empty config if not found or unparseable.
  */
-function tryParseObjIdConfig(appDir: string): ObjIdConfig {
+function tryParseObjIdConfig(appDir: string, tolerant?: boolean): ObjIdConfig {
     const configPath = path.join(appDir, ".objidconfig");
     try {
         if (!fs.existsSync(configPath)) {
@@ -74,7 +79,7 @@ function tryParseObjIdConfig(appDir: string): ObjIdConfig {
         const content = fs.readFileSync(configPath, "utf-8");
         // .objidconfig may contain comments (JSONC), strip single-line comments
         const stripped = content.replace(/^\s*\/\/.*$/gm, "");
-        const json = JSON.parse(stripped);
+        const json: any = tolerant ? parseTolerant(content) : JSON.parse(stripped);
 
         return {
             authKey: json.authKey || undefined,
@@ -96,19 +101,23 @@ function isValidPoolId(poolId: string): boolean {
 /**
  * Discover all AL apps under a root directory.
  */
-export async function discoverApps(rootDir: string, logger?: { warning(msg: string): void }): Promise<DiscoveredApp[]> {
+export async function discoverApps(
+    rootDir: string,
+    logger?: { warning(msg: string): void },
+    options?: { tolerant?: boolean }
+): Promise<DiscoveredApp[]> {
     const appJsonFiles = await findAppJsonFiles(rootDir);
     const apps: DiscoveredApp[] = [];
 
     for (const appJsonPath of appJsonFiles) {
-        const manifest = tryParseManifest(appJsonPath);
+        const manifest = tryParseManifest(appJsonPath, options?.tolerant);
         if (!manifest) {
             logger?.warning(`Could not parse ${appJsonPath}, skipping`);
             continue;
         }
 
         const appDir = path.dirname(appJsonPath);
-        const config = tryParseObjIdConfig(appDir);
+        const config = tryParseObjIdConfig(appDir, options?.tolerant);
         const hash = getSha256(manifest.id);
 
         let backendId = hash;

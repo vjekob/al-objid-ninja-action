@@ -3,6 +3,10 @@ import { discoverApps, findALFiles } from "./discovery";
 import { initializeParser, parseALFiles, terminateParser } from "./parser";
 import { buildConsumption, mergeConsumption } from "./consumption";
 import { getConsumption, syncConsumption } from "./backend";
+import { findCollisions } from "./collisions";
+import { BackendUnreachableError } from "./errors";
+import * as fs from "fs";
+import * as path from "path";
 
 interface AppWithConsumption {
     app: DiscoveredApp;
@@ -114,13 +118,15 @@ export async function run(inputs: ActionInputs, logger: ActionLogger): Promise<A
     const result: ActionResult = {
         success: true,
         untrackedIds: [],
+        collisions: [],
+        offline: false,
         syncedApps: [],
         errors: [],
         warnings: [],
     };
 
     // Discover apps
-    const apps = await discoverApps(inputs.workspace, logger);
+    const apps = await discoverApps(inputs.workspace, logger, { tolerant: inputs.tolerantManifests });
     if (apps.length === 0) {
         logger.warning("No AL apps (app.json) found in the workspace.");
         return result;
@@ -178,6 +184,44 @@ export async function run(inputs: ActionInputs, logger: ActionLogger): Promise<A
     return result;
 }
 
+function normalizePath(filePath: string): string {
+    const real = fs.realpathSync(filePath);
+    return process.platform === "win32" ? real.toLowerCase() : real;
+}
+
+/**
+ * Decides which files problems are reported for: all of them, unless `onlyFiles` narrows it down.
+ */
+function createFileFilter(inputs: ActionInputs): (filePath: string) => boolean {
+    if (!inputs.onlyFiles) {
+        return () => true;
+    }
+    const files = new Set(inputs.onlyFiles.map(normalizePath));
+    return (filePath) => files.has(normalizePath(filePath));
+}
+
+function reportCollisions(inputs: ActionInputs, logger: ActionLogger, result: ActionResult): void {
+    for (const collision of result.collisions) {
+        const note = collision.conditional ? " Part of this is under #if, so it may be intended." : "";
+        for (const location of collision.locations) {
+            const others = collision.locations
+                .filter((other) => other !== location)
+                .map((other) => path.relative(inputs.workspace, other.filePath).split(path.sep).join("/"))
+                .join(", ");
+            logger.warning(
+                `${collision.objectType} ${collision.objectId} "${location.objectName}" is also declared in ${others}.${note}`,
+                { file: location.filePath, startLine: location.line }
+            );
+        }
+    }
+
+    const failing = result.collisions.filter((c) => !c.conditional);
+    if (inputs.failOnCollision && failing.length > 0) {
+        logger.fail(`${failing.length} object ID collision(s) found. Give each object its own ID.`);
+        result.success = false;
+    }
+}
+
 async function runWarnMode(
     inputs: ActionInputs,
     logger: ActionLogger,
@@ -185,6 +229,17 @@ async function runWarnMode(
     appConsumptions: AppWithConsumption[],
     groups: Map<string, DiscoveredApp[]>
 ): Promise<void> {
+    const isReported = createFileFilter(inputs);
+
+    // Collisions don't need the backend, so they are reported even when it can't be reached
+    for (const [, groupApps] of groups) {
+        const groupAppHashes = new Set(groupApps.map((a) => a.hash));
+        const groupConsumptions = appConsumptions.filter((ac) => groupAppHashes.has(ac.app.hash));
+        const collisions = findCollisions(groupConsumptions);
+        result.collisions.push(...collisions.filter((c) => c.locations.some((l) => isReported(l.filePath))));
+    }
+    reportCollisions(inputs, logger, result);
+
     // One getConsumption call per unique backend ID (per pool or standalone app)
     for (const [backendId, groupApps] of groups) {
         const authKey = resolveAuthKey(groupApps);
@@ -196,9 +251,15 @@ async function runWarnMode(
                 authKey,
                 manifest: groupApps[0].manifest,
                 workspace: inputs.workspace,
+                gitIdentity: inputs.gitIdentity,
             });
         } catch (err) {
             const msg = (err as Error).message;
+            if (inputs.allowOffline && err instanceof BackendUnreachableError) {
+                logger.warning(`${msg} Object IDs were not checked against the backend.`);
+                result.offline = true;
+                return;
+            }
             logger.fail(msg);
             result.success = false;
             result.errors.push(msg);
@@ -210,7 +271,7 @@ async function runWarnMode(
         const groupConsumptions = appConsumptions.filter((ac) => groupAppHashes.has(ac.app.hash));
 
         const untracked = findUntrackedIds(groupConsumptions, backendConsumption, inputs);
-        result.untrackedIds.push(...untracked);
+        result.untrackedIds.push(...untracked.filter((u) => isReported(u.filePath)));
     }
 
     if (result.untrackedIds.length > 0) {
@@ -242,7 +303,7 @@ async function runWarnMode(
         logger.fail(`${parts.join(", ")} found. Run sync or assign IDs using AL Object ID Ninja.`);
         result.success = false;
     } else {
-        logger.info("All object IDs are tracked. No issues found.");
+        logger.info(result.collisions.length > 0 ? "All object IDs are tracked." : "All object IDs are tracked. No issues found.");
     }
 }
 

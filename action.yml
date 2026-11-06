@@ -1,5 +1,5 @@
 name: 'AL Object ID Ninja'
-description: 'Warns about untracked object IDs or synchronizes consumption with Ninja backend'
+description: 'Reports untracked object IDs and object ID collisions against the Ninja backend'
 inputs:
   exclude-field-ids:
     description: 'Skip checking table/table extension field IDs'
@@ -9,6 +9,17 @@ inputs:
     description: 'Skip checking enum/enum extension value IDs'
     required: false
     default: 'false'
+  fail-on-collision:
+    description: 'Fail when the same object type and ID is declared in more than one file. By default this only warns.'
+    required: false
+    default: 'false'
+outputs:
+  result:
+    description: 'The full result as JSON: untracked IDs, collisions, and errors'
+  untracked-count:
+    description: 'Number of untracked IDs found'
+  collision-count:
+    description: 'Number of object ID collisions found'
 runs:
   using: 'node24'
   main: 'dist/index.js'

@@ -34,7 +34,9 @@ function loadNativeModule(): NativeParserModule {
     }
 
     const platformId = getPlatformIdentifier();
-    const binDir = path.resolve(__dirname, "..", "bin");
+    // Bundled builds sit one level below bin/; unbundled source sits two levels below it.
+    const bundledBinDir = path.resolve(__dirname, "..", "bin");
+    const binDir = fs.existsSync(bundledBinDir) ? bundledBinDir : path.resolve(__dirname, "..", "..", "bin");
     const modulePath = path.join(binDir, `al-parser-ninja.${platformId}.node`);
 
     if (!fs.existsSync(modulePath)) {

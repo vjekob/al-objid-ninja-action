@@ -94,9 +94,35 @@ export interface UntrackedId {
 export interface ActionResult {
     success: boolean;
     untrackedIds: UntrackedId[];
+    collisions: Collision[];
+    /** True when the backend could not be reached and offline runs are allowed. */
+    offline: boolean;
     syncedApps: Array<{ app: DiscoveredApp; idCount: number }>;
     errors: string[];
     warnings: string[];
+}
+
+/**
+ * One declaration of an object ID that is declared in more than one file.
+ */
+export interface CollisionLocation {
+    app: DiscoveredApp;
+    objectName: string;
+    filePath: string;
+    line: number;
+    /** The declaration is inside an #if block, so it may not be compiled at the same time as the others. */
+    conditional: boolean;
+}
+
+/**
+ * The same object type and ID declared in more than one file of one app or one app pool.
+ */
+export interface Collision {
+    objectType: string;
+    objectId: number;
+    locations: CollisionLocation[];
+    /** Fewer than two declarations are unconditional, so this may be intended. Never fails a run. */
+    conditional: boolean;
 }
 
 /**
@@ -118,4 +144,16 @@ export interface ActionInputs {
     excludeFieldIds: boolean;
     excludeEnumValueIds: boolean;
     workspace: string;
+    /** Fail the run on a collision that doesn't depend on #if. By default collisions only warn. */
+    failOnCollision?: boolean;
+    /** Warn and carry on when the backend can't be reached, instead of failing. */
+    allowOffline?: boolean;
+    /** Identify the user from local git config instead of the last commit's author. */
+    gitIdentity?: GitIdentity;
+    /** Accept app.json and .objidconfig with comments or a BOM, and apply directory.app.props.json. */
+    tolerantManifests?: boolean;
+    /** Report only problems involving these absolute file paths. */
+    onlyFiles?: string[];
 }
+
+export type GitIdentity = "config";
