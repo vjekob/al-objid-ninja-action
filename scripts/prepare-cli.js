@@ -9,7 +9,7 @@ fs.rmSync(target, { recursive: true, force: true });
 fs.mkdirSync(path.join(target, "dist-cli"), { recursive: true });
 
 // A checkout with CRLF line endings carries the \r into the shebang, and npm's launchers break on it.
-const bundle = fs.readFileSync(path.join(root, "dist-cli", "index.js"), "utf-8").replace(/^#!.*\r?\n/, "");
+const bundle = fs.readFileSync(path.join(root, "dist-cli", "index.js"), "utf-8").replace(/^#!.*(\r\n|\r|\n)/, "");
 fs.writeFileSync(path.join(target, "dist-cli", "index.js"), `#!/usr/bin/env node\n${bundle}`);
 fs.cpSync(path.join(root, "bin"), path.join(target, "bin"), { recursive: true });
 fs.copyFileSync(path.join(root, "LICENSE"), path.join(target, "LICENSE"));
