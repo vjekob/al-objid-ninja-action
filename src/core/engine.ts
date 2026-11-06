@@ -185,7 +185,8 @@ export async function run(inputs: ActionInputs, logger: ActionLogger): Promise<A
 }
 
 function normalizePath(filePath: string): string {
-    const real = fs.realpathSync(filePath);
+    // The native version also expands Windows short names like RUNNER~1, which git never returns.
+    const real = fs.realpathSync.native(filePath);
     return process.platform === "win32" ? real.toLowerCase() : real;
 }
 
