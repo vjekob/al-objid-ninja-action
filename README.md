@@ -9,11 +9,48 @@ GitHub Action for [AL Object ID Ninja](https://marketplace.visualstudio.com/item
 
 ## Usage
 
+Create `.github/workflows/ninja-check.yml` in your repository. Change `main` if your main branch has a different name:
+
+```yaml
+name: AL Object ID Ninja Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vjekob/al-objid-ninja-action@main
+```
+
+The action finds every `app.json` in your repository by itself. The backend has to know your app, so someone must have used Ninja on it or synchronized it. If your app is authorized, commit `.objidconfig`, because the action reads the authorization key from there.
+
+To also fail on collisions:
+
 ```yaml
 - uses: vjekob/al-objid-ninja-action@main
   with:
     fail-on-collision: 'true'
 ```
+
+To use the result in a later step, give the step an `id`. Use `if: always()`, because later steps otherwise don't run after a failure:
+
+```yaml
+- id: ninja
+  uses: vjekob/al-objid-ninja-action@main
+- if: always()
+  shell: bash
+  run: |
+    echo "Untracked IDs: ${{ steps.ninja.outputs.untracked-count }}" >> "$GITHUB_STEP_SUMMARY"
+    echo "Collisions: ${{ steps.ninja.outputs.collision-count }}" >> "$GITHUB_STEP_SUMMARY"
+```
+
+The full guide is in the [help article](https://alid.ninja/help/extension/ci-cd-integration).
 
 ## Inputs
 
